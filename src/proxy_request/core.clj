@@ -37,19 +37,21 @@
           (connection-last-modified conn)))))
 
 (defn proxy-request
-  ([request url]
-   (proxy-request request url nil))
-  ([request url content-type]
-   (let [uri (:uri request)]
-     (try
-       (-> url
-           (clojure.java.io/as-url)
-           (url-response)
-           (#(if (or content-type
-                     (not (re-find #"\.([^./\\]+)$" uri)))
-               (resp/content-type % (or content-type "text/html"))
-               (content-type-response % request))))
-       (catch java.io.FileNotFoundException e
-         (log/error e "ERROR: proxy uri:" uri " to url:" url)
-         {:status 403
-          :headers {}})))))
+  [request url & [content-type post-hook]]
+  (let [uri (:uri request)
+        post-hook (or (and (fn? post-hook)
+                           post-hook)
+                      identity)]
+    (try
+      (-> url
+          (clojure.java.io/as-url)
+          (url-response)
+          (#(if (or content-type
+                    (not (re-find #"\.([^./\\]+)$" uri)))
+              (resp/content-type % (or content-type "text/html"))
+              (content-type-response % request)))
+          post-hook)
+      (catch java.io.FileNotFoundException e
+        (log/error e "ERROR: proxy uri:" uri " to url:" url)
+        {:status 403
+         :headers {}}))))
