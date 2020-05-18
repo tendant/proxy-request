@@ -2,9 +2,10 @@
 
 A Clojure library designed to proxy HTTP Request with post processing
 
-## Usage
+## Installation
 
-FIXME
+[tendant/proxy-request "0.1.0"]
+
 
 ## License
 
