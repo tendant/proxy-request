@@ -1,5 +1,8 @@
 (ns proxy-request.core
-  (:require [ring.util.time :as time]))
+  (:require [ring.util.time :as time]
+            [ring.util.response :as resp]
+            [ring.middleware.content-type :refer [content-type-response]]
+            [clojure.tools.logging :as log]))
 
 (defn- header
   "Returns an updated Ring response with the specified header added."
@@ -34,18 +37,19 @@
           (connection-last-modified conn)))))
 
 (defn proxy-request
-  [request & [path content-type]]
-  (let [index-html-url (:index-html-url config/env)
-        uri (:uri request)]
-    (try
-      (-> index-html-url
-          (clojure.java.io/as-url)
-          (url-response)
-          (#(if (or content-type
-                    (not (re-find #"\.([^./\\]+)$" uri)))
-              (resp/content-type % (or content-type "text/html"))
-              (content-type-response % request))))
-      (catch java.io.FileNotFoundException e
-        (log/error e "proxy page:" (or path index-html-url))
-        {:status 403
-         :headers {}}))))
+  ([request url]
+   (proxy-request request url nil))
+  ([request url content-type]
+   (let [uri (:uri request)]
+     (try
+       (-> url
+           (clojure.java.io/as-url)
+           (url-response)
+           (#(if (or content-type
+                     (not (re-find #"\.([^./\\]+)$" uri)))
+               (resp/content-type % (or content-type "text/html"))
+               (content-type-response % request))))
+       (catch java.io.FileNotFoundException e
+         (log/error e "ERROR: proxy uri:" uri " to url:" url)
+         {:status 403
+          :headers {}})))))
