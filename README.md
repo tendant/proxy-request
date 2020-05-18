@@ -1,6 +1,6 @@
 # proxy-request
 
-A Clojure library designed to ... well, that part is up to you.
+A Clojure library designed to proxy HTTP Request with post processing
 
 ## Usage
 
